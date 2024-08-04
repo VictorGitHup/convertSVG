@@ -17,8 +17,8 @@ UPLOAD_FOLDER = "./uploadedimages"
 SVG_FOLDER = "./convertedimages"
 BASE_URL = "http://18.220.19.49"
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
-CLEANUP_INTERVAL_HOURS = 1  # Intervalo de tiempo para ejecutar la limpieza en horas
-FILE_LIFETIME_HOURS = 1  # Tiempo de vida de los archivos en horas
+CLEANUP_INTERVAL_MINUTES = 60  # Intervalo de tiempo para ejecutar la limpieza en minutos
+FILE_LIFETIME_MINUTES = 60  # Tiempo de vida de los archivos en minutos
 
 ALLOWED_EXTENSIONS = {'jpeg', 'jpg', 'png'}
 
@@ -70,9 +70,11 @@ def cleanup_files():
         # Elimina archivos de subida
         for filename in os.listdir(UPLOAD_FOLDER):
             file_path = os.path.join(UPLOAD_FOLDER, filename)
-            creation_time = datetime.fromtimestamp(os.path.getctime(file_path))
-            if current_time - creation_time > timedelta(hours=FILE_LIFETIME_HOURS):
-                os.remove(file_path)
+            # Verifica la extensión del archivo
+            if filename.lower().endswith(tuple(ALLOWED_EXTENSIONS)):
+                creation_time = datetime.fromtimestamp(os.path.getctime(file_path))
+                if current_time - creation_time > timedelta(minutes=FILE_LIFETIME_MINUTES):
+                    os.remove(file_path)
 
         # Elimina archivos de conversión
         for filename in os.listdir(SVG_FOLDER):
@@ -81,8 +83,18 @@ def cleanup_files():
                 root = ET.parse(svg_path).getroot()
                 conversion_datetime_str = root.find(".//conversion_metadata").attrib["conversion_datetime"]
                 conversion_datetime = datetime.strptime(conversion_datetime_str, "%Y-%m-%d %H:%M:%S.%f")
-                if current_time - conversion_datetime > timedelta(hours=FILE_LIFETIME_HOURS):
+                if current_time - conversion_datetime > timedelta(minutes=FILE_LIFETIME_MINUTES):
+                    # Elimina el archivo SVG
                     os.remove(svg_path)
+
+                    # Genera el nombre del archivo original
+                    original_filename = f"{filename.rsplit('.', 1)[0]}.png"
+                    original_path = os.path.join(UPLOAD_FOLDER, original_filename)
+                    
+                    # Si el archivo original existe, elimínalo
+                    if os.path.exists(original_path):
+                        os.remove(original_path)
+
             except Exception as e:
                 # Maneja posibles errores al analizar el archivo SVG
                 pass
@@ -91,7 +103,7 @@ def cleanup_files():
         pass
 
 def scheduled_cleanup():
-    schedule.every(CLEANUP_INTERVAL_HOURS).hours.do(cleanup_files)
+    schedule.every(CLEANUP_INTERVAL_MINUTES).minutes.do(cleanup_files)
     while True:
         schedule.run_pending()
         # Evita el uso excesivo de la CPU
@@ -155,7 +167,6 @@ async def get_svg(svg_filename: str):
             return JSONResponse(content={"error": "SVG no encontrado"}, status_code=404)
     except Exception as e:
         return JSONResponse(content={"error": f"An error occurred: {str(e)}"}, status_code=500)
-    
     
 async def is_link_active(svg_url: str) -> bool:
     try:
