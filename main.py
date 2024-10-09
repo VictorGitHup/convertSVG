@@ -15,7 +15,7 @@ app = FastAPI()
 
 UPLOAD_FOLDER = "./uploadedimages"
 SVG_FOLDER = "./convertedimages"
-BASE_URL = "http://www.convertsvg-app.online/"
+BASE_URL = "http://localhost:8000"
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 CLEANUP_INTERVAL_MINUTES = 60  # Intervalo de tiempo para ejecutar la limpieza en minutos
 FILE_LIFETIME_MINUTES = 60  # Tiempo de vida de los archivos en minutos
@@ -156,17 +156,15 @@ async def upload(image: UploadFile = File(...)):
 @app.get("/convertedimages/{svg_filename}")
 async def get_svg(svg_filename: str):
     try:
-        # Construye la ruta completa del archivo SVG
         svg_path = os.path.join(SVG_FOLDER, svg_filename)
 
-        # Verifica si el archivo existe
         if os.path.exists(svg_path):
-            # Retorna el contenido del archivo SVG como respuesta
+            # Asegúrate de que el tipo de contenido sea correcto
             return FileResponse(svg_path, media_type="image/svg+xml", filename=svg_filename)
         else:
             return JSONResponse(content={"error": "SVG no encontrado"}, status_code=404)
     except Exception as e:
-        return JSONResponse(content={"error": f"An error occurred: {str(e)}"}, status_code=500)
+        ret
     
 async def is_link_active(svg_url: str) -> bool:
     try:
