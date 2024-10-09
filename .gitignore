@@ -1,0 +1,8 @@
+# Ignorar archivos de configuración
+__pycache__
+
+# Ignorar la carpeta de imágenes
+/convertedimages/
+/uploadedimages/
+
+
